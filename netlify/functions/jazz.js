@@ -1,3 +1,8 @@
+bash
+
+cat /home/claude/keg-scanner/netlify/functions/jazz.js
+Output
+
 const BASE = 'https://api.resumatorapi.com/v1';
 
 exports.handler = async (event) => {
@@ -10,12 +15,31 @@ exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: cors, body: '' };
 
   try {
-    const raw = event.isBase64Encoded
-      ? Buffer.from(event.body, 'base64').toString('utf8')
-      : event.body;
+    // Safely parse body — handle empty, null, or base64-encoded
+    let raw = event.body || '';
+    if (event.isBase64Encoded && raw) {
+      raw = Buffer.from(raw, 'base64').toString('utf8');
+    }
+    if (!raw || raw.trim() === '') {
+      return { statusCode: 400, headers: cors, body: JSON.stringify({ error: 'Empty request body' }) };
+    }
 
-    const { endpoint, method, params = {}, fileData } = JSON.parse(raw);
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      return { statusCode: 400, headers: cors, body: JSON.stringify({ error: 'Invalid JSON: ' + e.message }) };
+    }
+
+    const { endpoint, method, params = {}, fileData } = parsed;
     const key = process.env.JAZZHR_API_KEY;
+
+    if (!key) {
+      return { statusCode: 500, headers: cors, body: JSON.stringify({ error: 'JAZZHR_API_KEY not set' }) };
+    }
+    if (!endpoint) {
+      return { statusCode: 400, headers: cors, body: JSON.stringify({ error: 'endpoint required' }) };
+    }
 
     // ── FILE UPLOAD ──────────────────────────────────────────────────────
     if (method === 'FILE') {
@@ -44,7 +68,7 @@ exports.handler = async (event) => {
       const qs = new URLSearchParams({ apikey: key, ...params });
       const res = await fetch(`${BASE}/${endpoint}?${qs}`);
       const text = await res.text();
-      return { statusCode: res.status, headers: { ...cors, 'Content-Type': 'application/json' }, body: text };
+      return { statusCode: res.status, headers: { ...cors, 'Content-Type': 'application/json' }, body: text || '[]' };
     }
 
     // ── POST ─────────────────────────────────────────────────────────────
