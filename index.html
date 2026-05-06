@@ -254,14 +254,16 @@ let slotFiles = [null, null];   // file objects for front/back
 let candidates = [];
 let jobs = [];
 let toastT;
-const anthropicKey = 'ANTHROPIC_KEY_PLACEHOLDER';
-const jazzKey = 'JAZZHR_KEY_PLACEHOLDER';
+// API calls go through Netlify functions — no keys in browser
 
 // ─── JAZZ API (proxied through Netlify function) ─────────────────────────
 async function loadJobs(){
   try{
-    const qs = new URLSearchParams({ apikey: jazzKey });
-    const r = await fetch('https://api.resumatorapi.com/v1/jobs?' + qs);
+    const r = await fetch('/.netlify/functions/jazz', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint: 'jobs', method: 'GET' })
+    });
     const data = await r.json();
     jobs = Array.isArray(data) ? data : [];
     document.querySelectorAll('.jsel').forEach(fillJobSel);
@@ -403,17 +405,13 @@ Rules:
   });
 
   // Call Anthropic directly from the browser (no proxy = no size limit)
-  const res = await fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'x-api-key': anthropicKey,
-      'anthropic-version':'2023-06-01'
-    },
+  const res = await fetch('/.netlify/functions/scan', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model:'claude-sonnet-4-20250514',
-      max_tokens:1500,
-      messages:[{role:'user', content:contentBlocks}]
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1500,
+      messages: [{ role: 'user', content: contentBlocks }]
     })
   });
 
@@ -698,11 +696,10 @@ async function submitCandidate(i){
       location:   [c.city, c.state, c.zip].filter(Boolean).join(', '),
       notes:      buildNotes(c),
     };
-    const apParams = new URLSearchParams({ apikey: jazzKey, ...body });
-    const ar = await fetch('https://api.resumatorapi.com/v1/applicants', {
+    const ar = await fetch('/.netlify/functions/jazz', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: apParams.toString()
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint: 'applicants', method: 'POST', params: body })
     });
     const ad = await ar.json();
     if(!ar.ok || ad.error || !ad.id) throw new Error(ad.error||ad.message||'Applicant creation failed (HTTP '+ar.status+')');
@@ -731,11 +728,10 @@ async function submitCandidate(i){
     // ── STEP 3: Link to job ─────────────────────────────────
     if(c._jobId){
       try{
-        const jpParams = new URLSearchParams({ apikey: jazzKey, applicant_id: applicantId, job_id: c._jobId });
-        await fetch('https://api.resumatorapi.com/v1/applicants2jobs', {
+        await fetch('/.netlify/functions/jazz', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: jpParams.toString()
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint: 'applicants2jobs', method: 'POST', params: { applicant_id: applicantId, job_id: c._jobId } })
         });
       } catch(je){
         console.warn('Job link warning:', je.message);
@@ -772,25 +768,16 @@ function setStep(i, stepIdx, status){
 }
 
 async function attachFile(applicantId, file){
-  // Send file directly to JazzHR as multipart from the browser
-  const fd = new FormData();
-  fd.append('apikey', jazzKey);
-  fd.append('resume', file, file.name);
-  const r = await fetch('https://api.resumatorapi.com/v1/applicants/' + enc(applicantId) + '/files', {
+  const b64 = await toB64(file);
+  const r = await fetch('/.netlify/functions/jazz', {
     method: 'POST',
-    body: fd
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      endpoint: 'applicants/' + enc(applicantId) + '/files',
+      method: 'FILE',
+      fileData: { name: file.name, type: file.type || 'application/pdf', base64: b64 }
+    })
   });
-  if(r.status === 404){
-    const fd2 = new FormData();
-    fd2.append('apikey', jazzKey);
-    fd2.append('resume', file, file.name);
-    const r2 = await fetch('https://api.resumatorapi.com/v1/applicants/' + enc(applicantId), {
-      method: 'POST',
-      body: fd2
-    });
-    if(!r2.ok) throw new Error('File attach HTTP ' + r2.status);
-    return;
-  }
   if(!r.ok) throw new Error('File attach HTTP ' + r.status);
 }
 
