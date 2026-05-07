@@ -690,7 +690,8 @@ async function submitCandidate(i){
     const body = {
       first_name: c.first_name || 'Unknown',
       last_name:  c.last_name  || 'Applicant',
-      email:      c.email      || '',
+      const fallbackEmail = (c.first_name||'unknown').toLowerCase().replace(/[^a-z0-9]/g,'') + '.' + (c.last_name||'applicant').toLowerCase().replace(/[^a-z0-9]/g,'') + '+scan' + Date.now() + '@noemail.kegtus.com';
+      email:      c.email || fallbackEmail,
       phone:      c.phone      || '',
       address:    c.address    || '',
       city:       c.city       || '',
