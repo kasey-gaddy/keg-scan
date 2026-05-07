@@ -10,36 +10,12 @@ exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: cors, body: '' };
 
   try {
-    // Safely parse body — handle empty, null, or base64-encoded
-    let raw = event.body || '';
-    if (event.isBase64Encoded && raw) {
-      raw = Buffer.from(raw, 'base64').toString('utf8');
-    }
+    const raw = event.isBase64Encoded
+      ? Buffer.from(event.body, 'base64').toString('utf8')
+      : event.body;
 
-    console.log('jazz.js received body:', JSON.stringify(raw));
-    console.log('jazz.js httpMethod:', event.httpMethod);
-    console.log('jazz.js isBase64Encoded:', event.isBase64Encoded);
-
-    if (!raw || raw.trim() === '') {
-      return { statusCode: 400, headers: cors, body: JSON.stringify({ error: 'Empty request body', received: { method: event.httpMethod, bodyLength: (event.body || '').length } }) };
-    }
-
-    let parsed;
-    try {
-      parsed = JSON.parse(raw);
-    } catch (e) {
-      return { statusCode: 400, headers: cors, body: JSON.stringify({ error: 'Invalid JSON: ' + e.message, raw: raw.substring(0, 200) }) };
-    }
-
-    const { endpoint, method, params = {}, fileData } = parsed;
+    const { endpoint, method, params = {}, fileData } = JSON.parse(raw);
     const key = process.env.JAZZHR_API_KEY;
-
-    if (!key) {
-      return { statusCode: 500, headers: cors, body: JSON.stringify({ error: 'JAZZHR_API_KEY not set' }) };
-    }
-    if (!endpoint) {
-      return { statusCode: 400, headers: cors, body: JSON.stringify({ error: 'endpoint required' }) };
-    }
 
     // ── FILE UPLOAD ──────────────────────────────────────────────────────
     if (method === 'FILE') {
@@ -68,7 +44,7 @@ exports.handler = async (event) => {
       const qs = new URLSearchParams({ apikey: key, ...params });
       const res = await fetch(`${BASE}/${endpoint}?${qs}`);
       const text = await res.text();
-      return { statusCode: res.status, headers: { ...cors, 'Content-Type': 'application/json' }, body: text || '[]' };
+      return { statusCode: res.status, headers: { ...cors, 'Content-Type': 'application/json' }, body: text };
     }
 
     // ── POST ─────────────────────────────────────────────────────────────

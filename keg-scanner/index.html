@@ -693,9 +693,7 @@ async function submitCandidate(i){
       email:      c.email      || '',
       phone:      c.phone      || '',
       address:    c.address    || '',
-      city:       c.city       || '',
-      state:      c.state      || '',
-      zip:        c.zip        || '',
+      location:   [c.city, c.state, c.zip].filter(Boolean).join(', '),
       notes:      buildNotes(c),
     };
     const ar = await fetch('/.netlify/functions/jazz', {
