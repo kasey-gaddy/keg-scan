@@ -705,9 +705,9 @@ async function submitCandidate(i){
       body: JSON.stringify({ endpoint: 'applicants', method: 'POST', params: body })
     });
     const ad = await ar.json();
-    if(!ar.ok || ad.error || !ad.id) throw new Error(ad.error||ad.message||'Applicant creation failed (HTTP '+ar.status+')');
-
-    const applicantId = ad.id;
+    if(!ar.ok || ad._error) throw new Error(ad._error||ad.message||'Applicant creation failed (HTTP '+ar.status+')');
+    const applicantId = ad.id || ad.prospect_id;
+    if(!applicantId) throw new Error('No applicant ID returned: ' + JSON.stringify(ad));
     setStep(i, 0, 'done');
     setStep(i, 1, 'active');
     renderCards();
