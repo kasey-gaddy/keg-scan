@@ -15,7 +15,7 @@ exports.handler = async (event) => {
       raw = Buffer.from(raw, 'base64').toString('utf8');
     }
 
-    const key = process.env.JAZZHR_API_KEY;
+    const key = process.env.JAZZHR_API_KEY || '8RfkGwihOP1vxVhiR6PdF7UpWgKUhqht';
 
     if (!raw || raw.trim() === '') {
       return { statusCode: 400, headers: cors, body: JSON.stringify({ error: 'Empty request body' }) };
