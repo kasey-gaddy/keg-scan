@@ -48,7 +48,7 @@ exports.handler = async (event) => {
         fileBuffer,
         Buffer.from(`${CRLF}--${boundary}--`, 'utf8'),
       ]);
-      const res = await fetch(`${BASE}/${endpoint}`, {
+      const res = await fetch(`${BASE}/${endpoint}?apikey=${encodeURIComponent(key)}`, {
         method: 'POST',
         headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
         body,
@@ -58,7 +58,7 @@ exports.handler = async (event) => {
       return { statusCode: res.status, headers: { ...cors, 'Content-Type': 'application/json' }, body: text || '{}' };
     }
 
-    // GET
+    // GET — apikey in query string
     if (method === 'GET') {
       const qs = new URLSearchParams({ apikey: key, ...params });
       const res = await fetch(`${BASE}/${endpoint}?${qs}`);
@@ -67,11 +67,12 @@ exports.handler = async (event) => {
       return { statusCode: res.status, headers: { ...cors, 'Content-Type': 'application/json' }, body: text || '[]' };
     }
 
-    // POST
-    const form = new URLSearchParams({ apikey: key, ...params });
+    // POST — apikey in query string, params in body
+    const qs = new URLSearchParams({ apikey: key });
+    const form = new URLSearchParams(params);
     console.log('POST to:', `${BASE}/${endpoint}`);
-    console.log('POST form keys:', [...form.keys()].join(', '));
-    const res = await fetch(`${BASE}/${endpoint}`, {
+    console.log('POST body keys:', [...form.keys()].join(', '));
+    const res = await fetch(`${BASE}/${endpoint}?${qs}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: form.toString(),
@@ -81,7 +82,6 @@ exports.handler = async (event) => {
     return { statusCode: res.status, headers: { ...cors, 'Content-Type': 'application/json' }, body: text || '{}' };
 
   } catch (e) {
-    console.log('CATCH error:', e.message);
     return { statusCode: 500, headers: cors, body: JSON.stringify({ error: e.message }) };
   }
 };
