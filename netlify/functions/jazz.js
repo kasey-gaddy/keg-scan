@@ -17,12 +17,6 @@ exports.handler = async (event) => {
 
     const key = process.env.JAZZHR_API_KEY;
 
-    // Debug logging
-    console.log('body length:', raw.length);
-    console.log('key length:', (key || '').length);
-    console.log('key first 4:', (key || '').substring(0, 4));
-    console.log('JAZZ env keys:', Object.keys(process.env).filter(k => k.includes('JAZZ')).join(', '));
-
     if (!raw || raw.trim() === '') {
       return { statusCode: 400, headers: cors, body: JSON.stringify({ error: 'Empty request body' }) };
     }
@@ -37,7 +31,7 @@ exports.handler = async (event) => {
     const { endpoint, method, params = {}, fileData } = parsed;
 
     if (!key) {
-      return { statusCode: 500, headers: cors, body: JSON.stringify({ error: 'JAZZHR_API_KEY not set', envKeys: Object.keys(process.env).filter(k => !k.startsWith('npm_')).slice(0, 20) }) };
+      return { statusCode: 500, headers: cors, body: JSON.stringify({ error: 'JAZZHR_API_KEY not set' }) };
     }
     if (!endpoint) {
       return { statusCode: 400, headers: cors, body: JSON.stringify({ error: 'endpoint required' }) };
@@ -60,6 +54,7 @@ exports.handler = async (event) => {
         body,
       });
       const text = await res.text();
+      console.log('FILE response:', res.status, text.substring(0, 200));
       return { statusCode: res.status, headers: { ...cors, 'Content-Type': 'application/json' }, body: text || '{}' };
     }
 
@@ -68,20 +63,25 @@ exports.handler = async (event) => {
       const qs = new URLSearchParams({ apikey: key, ...params });
       const res = await fetch(`${BASE}/${endpoint}?${qs}`);
       const text = await res.text();
+      console.log('GET response:', res.status, text.substring(0, 100));
       return { statusCode: res.status, headers: { ...cors, 'Content-Type': 'application/json' }, body: text || '[]' };
     }
 
     // POST
     const form = new URLSearchParams({ apikey: key, ...params });
+    console.log('POST to:', `${BASE}/${endpoint}`);
+    console.log('POST form keys:', [...form.keys()].join(', '));
     const res = await fetch(`${BASE}/${endpoint}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: form.toString(),
     });
     const text = await res.text();
+    console.log('POST response:', res.status, text.substring(0, 300));
     return { statusCode: res.status, headers: { ...cors, 'Content-Type': 'application/json' }, body: text || '{}' };
 
   } catch (e) {
+    console.log('CATCH error:', e.message);
     return { statusCode: 500, headers: cors, body: JSON.stringify({ error: e.message }) };
   }
 };
