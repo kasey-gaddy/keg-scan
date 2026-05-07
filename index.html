@@ -699,6 +699,7 @@ async function submitCandidate(i){
       state:      c.state      || '',
       zip:        c.zip        || '',
       notes:      buildNotes(c),
+      job_id:     c._jobId    || '',
     };
     const ar = await fetch('/.netlify/functions/jazz', {
       method: 'POST',
