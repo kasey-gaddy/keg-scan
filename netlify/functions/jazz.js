@@ -30,9 +30,6 @@ exports.handler = async (event) => {
 
     const { endpoint, method, params = {}, fileData } = parsed;
 
-    if (!key) {
-      return { statusCode: 500, headers: cors, body: JSON.stringify({ error: 'JAZZHR_API_KEY not set' }) };
-    }
     if (!endpoint) {
       return { statusCode: 400, headers: cors, body: JSON.stringify({ error: 'endpoint required' }) };
     }
@@ -54,28 +51,24 @@ exports.handler = async (event) => {
         body,
       });
       const text = await res.text();
-      console.log('FILE response:', res.status, text.substring(0, 200));
       return { statusCode: res.status, headers: { ...cors, 'Content-Type': 'application/json' }, body: text || '{}' };
     }
 
-    // GET — apikey in query string
+    // GET
     if (method === 'GET') {
       const qs = new URLSearchParams({ apikey: key, ...params });
       const res = await fetch(`${BASE}/${endpoint}?${qs}`);
       const text = await res.text();
-      console.log('GET response:', res.status, text.substring(0, 100));
       return { statusCode: res.status, headers: { ...cors, 'Content-Type': 'application/json' }, body: text || '[]' };
     }
 
-    // POST — apikey in query string, params in body
-    const qs = new URLSearchParams({ apikey: key });
-    const form = new URLSearchParams(Object.entries(params).map(([k,v]) => [k, String(v ?? "")]));
+    // POST — send as JSON body with apikey in query string
     console.log('POST to:', `${BASE}/${endpoint}`);
-    console.log('POST body keys:', [...form.keys()].join(', '));
-    const res = await fetch(`${BASE}/${endpoint}?${qs}`, {
+    console.log('POST params:', JSON.stringify(params).substring(0, 200));
+    const res = await fetch(`${BASE}/${endpoint}?apikey=${encodeURIComponent(key)}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: form.toString(),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
     });
     const text = await res.text();
     console.log('POST response:', res.status, text.substring(0, 300));
