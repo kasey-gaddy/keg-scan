@@ -69,7 +69,7 @@ exports.handler = async (event) => {
 
     // POST — apikey in query string, params in body
     const qs = new URLSearchParams({ apikey: key });
-    const form = new URLSearchParams(params);
+    const form = new URLSearchParams(Object.entries(params).map(([k,v]) => [k, String(v ?? "")]));
     console.log('POST to:', `${BASE}/${endpoint}`);
     console.log('POST body keys:', [...form.keys()].join(', '));
     const res = await fetch(`${BASE}/${endpoint}?${qs}`, {
