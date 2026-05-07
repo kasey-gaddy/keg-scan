@@ -776,7 +776,7 @@ async function attachFile(applicantId, file){
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      endpoint: 'applicants/' + enc(applicantId) + '/files',
+      endpoint: 'applicants/' + enc(applicantId) + '/resume',
       method: 'FILE',
       fileData: { name: file.name, type: file.type || 'application/pdf', base64: b64 }
     })

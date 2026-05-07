@@ -46,7 +46,7 @@ exports.handler = async (event) => {
         Buffer.from(`${CRLF}--${boundary}--`, 'utf8'),
       ]);
       const res = await fetch(`${BASE}/${endpoint}?apikey=${encodeURIComponent(key)}`, {
-        method: 'POST',
+        method: 'PUT',
         headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
         body,
       });
