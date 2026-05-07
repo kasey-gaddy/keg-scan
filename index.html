@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KE&G Application Scanner</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -709,20 +710,29 @@ async function submitCandidate(i){
     const applicantId = ad.id || ad.prospect_id;
     if(!applicantId) throw new Error('No applicant ID returned: ' + JSON.stringify(ad));
     setStep(i, 0, 'done');
+
+    // ── Post work history as a comment/note ─────────────────
+    const noteText = buildNotes(c);
+    if(noteText){
+      try{
+        await fetch('/.netlify/functions/jazz', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint: 'notes', method: 'POST', params: { applicant_id: applicantId, contents: noteText, security_level: 'all' } })
+        });
+      } catch(ne){ console.warn('Note post warning:', ne.message); }
+    }
+
     setStep(i, 1, 'active');
     renderCards();
 
-    // ── STEP 2: Attach files as resume/documents ────────────
-    const files = c._files || [];
+    // ── STEP 2: Generate & attach PDF resume ────────────────
     let fileOk = true;
-    for(const file of files){
-      try{
-        await attachFile(applicantId, file);
-      } catch(fe){
-        console.warn('File attach warning:', fe.message);
-        fileOk = false;
-        // Non-fatal — applicant already created
-      }
+    try{
+      await attachFile(applicantId, c);
+    } catch(fe){
+      console.warn('File attach warning:', fe.message);
+      fileOk = false;
     }
     setStep(i, 1, fileOk ? 'done' : 'err');
     setStep(i, 2, 'active');
@@ -770,15 +780,112 @@ function setStep(i, stepIdx, status){
   }
 }
 
-async function attachFile(applicantId, file){
-  const b64 = await toB64(file);
+function generateResumePDF(c){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+  const margin = 50;
+  const pageW = doc.internal.pageSize.getWidth();
+  const maxW = pageW - margin * 2;
+  let y = margin;
+
+  function addLine(text, opts){
+    opts = opts || {};
+    const size = opts.size || 11;
+    const bold = opts.bold || false;
+    const color = opts.color || [30, 30, 30];
+    doc.setFontSize(size);
+    doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    doc.setTextColor(color[0], color[1], color[2]);
+    if(y > 720){ doc.addPage(); y = margin; }
+    const lines = doc.splitTextToSize(text, maxW);
+    doc.text(lines, margin, y);
+    y += lines.length * (size * 1.4) + (opts.after || 0);
+  }
+
+  function addSection(label, value){
+    if(!value || !value.trim()) return;
+    if(y > 680){ doc.addPage(); y = margin; }
+    addLine(label, { size: 9, bold: true, color: [120, 120, 120], after: 2 });
+    addLine(value, { size: 11, after: 14 });
+  }
+
+  function rule(){
+    if(y > 700){ doc.addPage(); y = margin; }
+    doc.setDrawColor(220, 220, 220);
+    doc.setLineWidth(0.5);
+    doc.line(margin, y, pageW - margin, y);
+    y += 12;
+  }
+
+  // Header
+  const name = [c.first_name, c.last_name].filter(Boolean).join(' ') || 'Applicant';
+  addLine(name, { size: 22, bold: true, color: [26, 39, 68], after: 4 });
+
+  const contact = [c.phone, c.email].filter(Boolean).join('  |  ');
+  if(contact) addLine(contact, { size: 10, color: [80, 80, 80], after: 2 });
+
+  const loc = [c.address, c.city, c.state, c.zip].filter(Boolean).join(', ');
+  if(loc) addLine(loc, { size: 10, color: [80, 80, 80], after: 4 });
+
+  rule();
+
+  // Application details
+  if(c.position_applied) addSection('POSITION APPLIED FOR', c.position_applied);
+  if(c.availability)     addSection('AVAILABILITY', c.availability);
+  if(c.desired_start_date) addSection('DESIRED START DATE', c.desired_start_date);
+  if(c.cdl_class)        addSection('CDL CLASS', c.cdl_class);
+
+  if(c.employment_history){
+    rule();
+    addLine('WORK HISTORY', { size: 12, bold: true, color: [26, 39, 68], after: 8 });
+    addLine(c.employment_history, { size: 11, after: 14 });
+  }
+
+  if(c.equipment_operated){
+    addSection('EQUIPMENT OPERATED', c.equipment_operated);
+  }
+
+  if(c.education){
+    rule();
+    addLine('EDUCATION', { size: 12, bold: true, color: [26, 39, 68], after: 8 });
+    addLine(c.education, { size: 11, after: 14 });
+  }
+
+  if(c.references){
+    rule();
+    addLine('REFERENCES', { size: 12, bold: true, color: [26, 39, 68], after: 8 });
+    addLine(c.references, { size: 11, after: 14 });
+  }
+
+  if(c.additional_notes){
+    rule();
+    addSection('ADDITIONAL NOTES', c.additional_notes);
+  }
+
+  // Footer
+  rule();
+  addLine('Source: Handwritten application — scanned via KE&G Application Scanner', { size: 8, color: [150, 150, 150] });
+
+  return doc.output('datauristring').split(',')[1]; // base64
+}
+
+async function attachFile(applicantId, candidateData){
+  // Generate a clean PDF from candidate data
+  let b64, filename;
+  try {
+    b64 = generateResumePDF(candidateData);
+    filename = ((candidateData.first_name||'') + '_' + (candidateData.last_name||'') + '_Application.pdf').replace(/\s+/g,'_');
+  } catch(e) {
+    throw new Error('PDF generation failed: ' + e.message);
+  }
+
   const r = await fetch('/.netlify/functions/jazz', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       endpoint: 'applicants/' + enc(applicantId) + '/resume',
       method: 'FILE',
-      fileData: { name: file.name, type: file.type || 'application/pdf', base64: b64 }
+      fileData: { name: filename, type: 'application/pdf', base64: b64 }
     })
   });
   if(!r.ok) throw new Error('File attach HTTP ' + r.status);
