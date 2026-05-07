@@ -1,3 +1,809 @@
-[build]
-  publish = "."
-  functions = "netlify/functions"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KE&G Application Scanner</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --navy:#1A2744;--navy-dark:#0D1F3C;--navy-mid:#253459;
+  --orange:#E8621A;--orange-h:#D45510;
+  --cream:#F6F4EF;--border:#DDD9D0;--muted:#6B7280;--text:#1A2744;
+  --green:#15803d;--green-bg:#F0FDF4;--red:#b91c1c;--red-bg:#FEF2F2;
+  --yellow-bg:#FFFBEB;--yellow-text:#92400e;
+}
+body{font-family:'Barlow',sans-serif;background:var(--cream);color:var(--text);min-height:100vh;}
+
+/* HEADER */
+header{background:var(--navy-dark);border-bottom:3px solid var(--orange);position:sticky;top:0;z-index:200;}
+.hdr{max-width:1120px;margin:0 auto;padding:13px 24px;display:flex;align-items:center;gap:14px;}
+.hdr-text h1{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:#fff;letter-spacing:.04em;line-height:1.2;}
+.hdr-text p{font-size:10px;font-weight:500;color:rgba(255,255,255,.4);letter-spacing:.1em;text-transform:uppercase;}
+
+/* API STRIP */
+
+
+/* MAIN */
+.main{max-width:1120px;margin:0 auto;padding:22px 24px 64px;}
+
+/* STEP TABS */
+.steps{display:flex;background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:20px;}
+.step{flex:1;padding:11px 14px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--muted);border-right:1px solid var(--border);cursor:default;}
+.step:last-child{border-right:none;}
+.step.active{background:var(--navy);color:#fff;}
+.step.done{background:var(--green-bg);color:var(--green);}
+.sn{width:21px;height:21px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:rgba(0,0,0,.09);flex-shrink:0;}
+.step.active .sn{background:var(--orange);color:#fff;}
+.step.done .sn{background:var(--green);color:#fff;}
+
+/* PANEL */
+.panel{background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px;}
+.phd{background:var(--navy);color:#fff;padding:11px 16px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;display:flex;align-items:center;gap:8px;}
+.pbd{padding:16px;}
+
+/* DROP ZONE */
+.dz{border:2px dashed var(--border);border-radius:8px;padding:30px 16px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;position:relative;}
+.dz:hover,.dz.over{border-color:var(--orange);background:#FFF8F4;}
+.dz input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.dz-icon{width:42px;height:42px;margin:0 auto 10px;background:#EEEBe4;border-radius:9px;display:flex;align-items:center;justify-content:center;}
+.dz-title{font-size:14px;font-weight:600;margin-bottom:3px;}
+.dz-sub{font-size:11px;color:var(--muted);}
+
+/* FILE SLOTS */
+.slots{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;}
+.slot{border:2px dashed var(--border);border-radius:8px;padding:12px;text-align:center;position:relative;min-height:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;transition:border-color .15s,background .15s;}
+.slot:hover,.slot.dragover{border-color:var(--orange);background:#FFF8F4;}
+.slot input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.slot.filled{border-style:solid;border-color:var(--navy);background:#F0F3FA;}
+.slot-label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;}
+.slot-fname{font-size:12px;font-weight:600;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;}
+.slot-remove{position:absolute;top:6px;right:8px;background:none;border:none;cursor:pointer;font-size:14px;color:#9CA3AF;line-height:1;}
+.slot-remove:hover{color:var(--red);}
+.slot-thumb{width:36px;height:36px;border-radius:4px;object-fit:cover;margin-bottom:2px;}
+
+/* PROGRESS */
+.pw{height:4px;background:#E5E0D5;border-radius:99px;margin-top:12px;display:none;}
+.pb{height:100%;background:var(--orange);border-radius:99px;transition:width .3s;}
+.smsg{font-size:11px;color:var(--muted);text-align:center;margin-top:5px;min-height:15px;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:7px;font-family:'Barlow',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:background .12s,opacity .12s;white-space:nowrap;}
+.btn-block{width:100%;justify-content:center;margin-top:10px;}
+.btn-primary{background:var(--orange);color:#fff;}
+.btn-primary:hover:not(:disabled){background:var(--orange-h);}
+.btn-navy{background:var(--navy);color:#fff;}
+.btn-navy:hover:not(:disabled){background:var(--navy-dark);}
+.btn-ghost{background:#fff;color:var(--navy);border:1.5px solid var(--border);}
+.btn-ghost:hover:not(:disabled){border-color:var(--navy);background:#F8F7F4;}
+.btn-green{background:var(--green);color:#fff;}
+.btn-green:hover:not(:disabled){background:#166534;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+
+/* INFO / WARN BOXES */
+.info-box{background:#EFF6FF;border:1px solid #BFDBFE;border-radius:7px;padding:10px 12px;font-size:11px;color:#1e40af;line-height:1.6;margin-top:12px;}
+.warn-box{background:var(--yellow-bg);border:1px solid #FDE68A;border-radius:7px;padding:10px 12px;font-size:11px;color:var(--yellow-text);line-height:1.6;margin-top:8px;}
+
+/* TOP BAR FOR STEP 2 */
+.s2-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap;}
+.s2-count{font-size:13px;font-weight:600;color:var(--muted);}
+.s2-actions{display:flex;gap:8px;}
+
+/* CANDIDATE CARD */
+.ccard{background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px;}
+.ccard.submitted{border-color:#86efac;}
+.ccard.failed{border-color:#fca5a5;}
+
+.chd{padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);background:#FAFAF8;}
+.cavt{width:38px;height:38px;border-radius:50%;background:var(--navy);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.cname{font-weight:700;font-size:15px;line-height:1.2;}
+.cpos{font-size:11px;color:var(--muted);}
+.cpill{margin-left:auto;font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;flex-shrink:0;}
+.ch{background:#DCFCE7;color:#15803d;}
+.cm{background:#FEF3C7;color:#92400e;}
+.cl{background:#FEE2E2;color:#b91c1c;}
+.csbadge{font-size:10px;font-weight:700;letter-spacing:.04em;padding:3px 10px;border-radius:99px;margin-left:6px;flex-shrink:0;}
+.csbadge.submitted{background:#DCFCE7;color:#15803d;}
+.csbadge.failed{background:#FEE2E2;color:#b91c1c;}
+
+.cbd{padding:16px;}
+
+/* FIELD GRID */
+.fg{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:10px;margin-bottom:12px;}
+.fg2{grid-template-columns:1fr 1fr;}
+.fg1{grid-template-columns:1fr;}
+.fl{display:flex;flex-direction:column;gap:3px;}
+.flabel{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;}
+.fi{font-family:'Barlow',sans-serif;font-size:13px;color:var(--text);border:1.5px solid var(--border);border-radius:6px;padding:6px 9px;outline:none;transition:border-color .12s;width:100%;background:#fff;}
+.fi:focus{border-color:var(--orange);}
+.fi:disabled{background:#F8F7F4;color:var(--muted);cursor:not-allowed;}
+textarea.fi{resize:vertical;}
+select.fi{cursor:pointer;}
+
+/* DIVIDER */
+.div{height:1px;background:var(--border);margin:12px 0;}
+
+/* FILE BADGES IN CARD */
+.file-badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+.file-badge{display:flex;align-items:center;gap:5px;background:#F0F3FA;border:1px solid #C7D0E8;border-radius:6px;padding:4px 9px;font-size:11px;font-weight:600;color:var(--navy);}
+.file-badge svg{flex-shrink:0;opacity:.6;}
+
+/* CARD ACTIONS */
+.cactions{display:flex;gap:8px;align-items:center;padding-top:6px;flex-wrap:wrap;}
+.cactions .btn{padding:8px 14px;font-size:12px;}
+.ok-msg{font-size:12px;font-weight:600;color:var(--green);display:flex;align-items:center;gap:5px;}
+.err-msg{font-size:12px;font-weight:600;color:var(--red);}
+
+/* UPLOAD STATUS STEPS */
+.submit-steps{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;}
+.sstep{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted);}
+.sstep.done{color:var(--green);}
+.sstep.active{color:var(--navy);font-weight:600;}
+.sstep.err{color:var(--red);}
+.sstep-dot{width:8px;height:8px;border-radius:50%;background:var(--border);flex-shrink:0;}
+.sstep.done .sstep-dot{background:var(--green);}
+.sstep.active .sstep-dot{background:var(--orange);}
+.sstep.err .sstep-dot{background:var(--red);}
+
+/* EMPTY */
+.empty{padding:44px 24px;text-align:center;}
+.ei{width:50px;height:50px;margin:0 auto 12px;background:#EEEAE3;border-radius:12px;display:flex;align-items:center;justify-content:center;}
+.et{font-size:15px;font-weight:700;margin-bottom:4px;}
+.es{font-size:12px;color:var(--muted);}
+
+/* TOAST */
+#toast{position:fixed;bottom:20px;right:20px;background:var(--navy-dark);color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;border-left:3px solid var(--orange);transform:translateY(80px);opacity:0;transition:transform .25s,opacity .25s;z-index:9999;max-width:340px;line-height:1.4;}
+#toast.show{transform:translateY(0);opacity:1;}
+#toast.ok{border-left-color:#22c55e;}
+#toast.err{border-left-color:#ef4444;}
+
+.spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+@media(max-width:600px){
+  .main{padding:14px 12px 50px;}
+  .step .sl{display:none;}
+  .fg{grid-template-columns:1fr 1fr;}
+  .slots{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr">
+    <img src="data:image/png;base64,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" alt="KE&G Construction" style="height:40px;width:auto;"/>
+    <div class="hdr-text">
+      <h1>Application Scanner</h1>
+      <p>Handwritten Application → JazzHR</p>
+    </div>
+  </div>
+</header>
+
+
+
+<div class="main">
+
+  <!-- STEP TABS -->
+  <div class="steps">
+    <div class="step active" id="tab1"><span class="sn">1</span><span class="sl">Upload &amp; Scan</span></div>
+    <div class="step" id="tab2"><span class="sn">2</span><span class="sl">Review &amp; Edit</span></div>
+    <div class="step" id="tab3"><span class="sn">3</span><span class="sl">Submit to JazzHR</span></div>
+  </div>
+
+  <!-- ── STEP 1 ── -->
+  <div id="s1">
+    <div class="panel">
+      <div class="phd">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+        Upload Application Pages
+      </div>
+      <div class="pbd">
+
+        <!-- TWO SLOTS -->
+        <div class="slots">
+          <div class="slot" id="slot0" onclick="triggerSlot(0)">
+            <input type="file" id="slotInput0" accept=".pdf,image/jpeg,image/png" onchange="slotFile(0,this)"/>
+            <div class="slot-label">Page 1 <span style="font-weight:400;opacity:.6">(optional)</span></div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <div style="font-size:11px;color:var(--muted);">Click to upload</div>
+          </div>
+          <div class="slot" id="slot1" onclick="triggerSlot(1)">
+            <input type="file" id="slotInput1" accept=".pdf,image/jpeg,image/png" onchange="slotFile(1,this)"/>
+            <div class="slot-label">Page 2 <span style="font-weight:400;opacity:.6">(optional)</span></div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <div style="font-size:11px;color:var(--muted);">Click to upload</div>
+          </div>
+        </div>
+
+        <div class="pw" id="pw"><div class="pb" id="pb" style="width:0%"></div></div>
+        <div class="smsg" id="smsg"></div>
+
+        <button class="btn btn-primary btn-block" id="scan-btn" disabled onclick="runScan()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Scan Application with Claude
+        </button>
+
+        <div class="info-box">
+          Upload one or both pages of the handwritten application — a single PDF works too. Claude reads all uploaded pages as one applicant record. All files are also attached to the candidate's JazzHR profile as their application documents.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 2/3 ── -->
+  <div id="s2" style="display:none">
+    <div class="s2-bar">
+      <div class="s2-count" id="ccount">0 candidates</div>
+      <div class="s2-actions">
+        <button class="btn btn-ghost" style="font-size:12px;padding:7px 12px;" onclick="addBlank()">+ Add manually</button>
+        <button class="btn btn-ghost" style="font-size:12px;padding:7px 12px;" onclick="goBack()">← Scan another</button>
+      </div>
+    </div>
+    <div id="cands"></div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ─── STATE ─────────────────────────────────────────────────────────────
+let slotFiles = [null, null];   // file objects for front/back
+let candidates = [];
+let jobs = [];
+let toastT;
+// API calls go through Netlify functions — no keys in browser
+
+// ─── JAZZ API (proxied through Netlify function) ─────────────────────────
+async function loadJobs(){
+  try{
+    const r = await fetch('/.netlify/functions/jazz', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint: 'jobs', method: 'GET' })
+    });
+    const data = await r.json();
+    jobs = Array.isArray(data) ? data : [];
+    document.querySelectorAll('.jsel').forEach(fillJobSel);
+  } catch(e){
+    console.warn('Could not load jobs:', e.message);
+  }
+}
+
+window.addEventListener('DOMContentLoaded', loadJobs);
+
+// ─── SLOT UPLOADS ────────────────────────────────────────────────────────
+function triggerSlot(idx){
+  // clicks are delegated to file input naturally — this prevents double-trigger
+}
+
+function slotFile(idx, input){
+  const file = input.files[0];
+  if(!file) return;
+  slotFiles[idx] = file;
+  renderSlot(idx, file);
+  document.getElementById('scan-btn').disabled = !slotFiles.some(Boolean);
+}
+
+function renderSlot(idx, file){
+  const slot = document.getElementById('slot' + idx);
+  const isImage = file.type.startsWith('image/');
+  const label = idx === 0 ? 'Page 1 — Front' : 'Page 2 — Back';
+
+  slot.classList.add('filled');
+  slot.innerHTML = `
+    <input type="file" id="slotInput${idx}" accept=".pdf,image/jpeg,image/png" onchange="slotFile(${idx},this)" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;"/>
+    <button class="slot-remove" onclick="clearSlot(event,${idx})">✕</button>
+    <div class="slot-label">${label}</div>
+    ${isImage ? `<img class="slot-thumb" id="thumb${idx}" alt="preview"/>` : `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1A2744" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`}
+    <div class="slot-fname">${esc(file.name)}</div>
+  `;
+
+  if(isImage){
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = document.getElementById('thumb' + idx);
+      if(img) img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+function clearSlot(e, idx){
+  e.stopPropagation();
+  slotFiles[idx] = null;
+  const slot = document.getElementById('slot' + idx);
+  slot.classList.remove('filled');
+  const label = idx === 0 ? 'Page 1' : 'Page 2';
+  slot.innerHTML = `
+    <input type="file" id="slotInput${idx}" accept=".pdf,image/jpeg,image/png" onchange="slotFile(${idx},this)" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;"/>
+    <div class="slot-label">${label} <span style="font-weight:400;opacity:.6">(optional)</span></div>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    <div style="font-size:11px;color:var(--muted);">Click to upload</div>
+  `;
+  document.getElementById('scan-btn').disabled = !slotFiles.some(Boolean);
+}
+
+// ─── SCAN ────────────────────────────────────────────────────────────────
+async function runScan(){
+  if(!slotFiles.some(Boolean)){ toast('Upload at least one file first.','err'); return; }
+  const btn = document.getElementById('scan-btn');
+  btn.disabled = true;
+  const pw = document.getElementById('pw');
+  const pb = document.getElementById('pb');
+  const sm = document.getElementById('smsg');
+  pw.style.display = 'block';
+  pb.style.width = '20%';
+  sm.textContent = 'Reading application with Claude…';
+
+  try{
+    const pages = slotFiles.filter(Boolean);
+    pb.style.width = '40%';
+    const result = await scanWithClaude(pages);
+    pb.style.width = '90%';
+
+    // Store original file refs with the candidate
+    result._files = pages;
+    result._id = Date.now() + Math.random();
+    result._status = 'pending';
+    result._jobId = '';
+    result._err = '';
+    candidates.push(result);
+
+    pb.style.width = '100%';
+    sm.textContent = 'Done — review the extracted data below';
+    showS2();
+  } catch(e){
+    sm.textContent = 'Scan failed: ' + e.message;
+    btn.disabled = false;
+    toast('Scan failed: ' + e.message, 'err');
+  }
+}
+
+// ─── CLAUDE ──────────────────────────────────────────────────────────────
+async function scanWithClaude(files){
+  const contentBlocks = [];
+
+  for(const file of files){
+    const mt = file.type || 'application/pdf';
+    if(mt === 'application/pdf'){
+      const b64 = await toB64(file);
+      contentBlocks.push({type:'document', source:{type:'base64', media_type:'application/pdf', data:b64}});
+    } else {
+      // Compress images before sending — keeps payload under Netlify's 6MB function limit
+      const b64 = await compressImage(file, 1800, 0.82);
+      contentBlocks.push({type:'image', source:{type:'base64', media_type:'image/jpeg', data:b64}});
+    }
+  }
+
+  const pageNote = files.length === 2
+    ? 'You have been given two pages of the same handwritten employment application. They belong to one person — extract one combined record.'
+    : 'You have been given one page of a handwritten employment application.';
+
+  contentBlocks.push({type:'text', text:`${pageNote}
+
+Extract all visible information. Return ONLY a single JSON object — no array, no markdown, no commentary:
+
+{
+  "first_name":"","last_name":"","email":"","phone":"",
+  "address":"","city":"","state":"","zip":"",
+  "position_applied":"","availability":"","desired_start_date":"",
+  "employment_history":"","education":"","cdl_class":"",
+  "equipment_operated":"","references":"","additional_notes":"",
+  "confidence":"high|medium|low"
+}
+
+Rules:
+- Blank or illegible → empty string "".
+- cdl_class: write the class letter (A, B, or C) if shown, "Yes" if mentioned without class, "No" if declined, or "".
+- equipment_operated: comma-separated list of any equipment types mentioned.
+- employment_history: brief — e.g. "ABC Paving, Equipment Op, 5 yrs". Include all jobs listed.
+- confidence: high = clearly legible, medium = partially legible, low = mostly illegible.
+- Return ONLY the JSON object, nothing else.`
+  });
+
+  // Call Anthropic directly from the browser (no proxy = no size limit)
+  const res = await fetch('/.netlify/functions/scan', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1500,
+      messages: [{ role: 'user', content: contentBlocks }]
+    })
+  });
+
+  const text = await res.text();
+  if(!text || text.trim() === ''){
+    throw new Error('Empty response from Anthropic API.');
+  }
+
+  let d;
+  try { d = JSON.parse(text); }
+  catch(e){ throw new Error('Non-JSON from Anthropic: ' + text.slice(0,200)); }
+
+  if(!res.ok){
+    throw new Error(d.error?.message || d.error || 'Claude API error ' + res.status);
+  }
+
+  const raw = d.content.map(c=>c.text||'').join('').trim()
+    .replace(/^```json\s*/,'').replace(/^```/,'').replace(/```$/,'').trim();
+  return JSON.parse(raw);
+}
+
+// Compress an image to JPEG at max dimension and quality — keeps payload small
+function compressImage(file, maxDim, quality){
+  return new Promise((res, rej)=>{
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = ()=>{
+      URL.revokeObjectURL(url);
+      let {width, height} = img;
+      if(width > maxDim || height > maxDim){
+        if(width >= height){ height = Math.round(height * maxDim / width); width = maxDim; }
+        else { width = Math.round(width * maxDim / height); height = maxDim; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      const dataUrl = canvas.toDataURL('image/jpeg', quality);
+      res(dataUrl.split(',')[1]);
+    };
+    img.onerror = ()=>rej(new Error('Could not load image for compression'));
+    img.src = url;
+  });
+}
+
+function toB64(file){
+  return new Promise((res,rej)=>{
+    const r = new FileReader();
+    r.onload = ()=>res(r.result.split(',')[1]);
+    r.onerror = ()=>rej(new Error('File read failed'));
+    r.readAsDataURL(file);
+  });
+}
+
+// ─── NAVIGATION ──────────────────────────────────────────────────────────
+function showS2(){
+  document.getElementById('s1').style.display = 'none';
+  document.getElementById('s2').style.display = 'block';
+  setTabs(2);
+  renderCards();
+}
+
+function goBack(){
+  // Reset slots for next applicant
+  slotFiles = [null, null];
+  [0,1].forEach(i=>{
+    const slot = document.getElementById('slot'+i);
+    if(slot){
+      const label = i===0?'Page 1':'Page 2';
+      slot.classList.remove('filled');
+      slot.innerHTML=`
+        <input type="file" id="slotInput${i}" accept=".pdf,image/jpeg,image/png" onchange="slotFile(${i},this)" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;"/>
+        <div class="slot-label">${label} <span style="font-weight:400;opacity:.6">(optional)</span></div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <div style="font-size:11px;color:var(--muted);">Click to upload</div>`;
+    }
+  });
+  document.getElementById('pw').style.display = 'none';
+  document.getElementById('pb').style.width = '0%';
+  document.getElementById('smsg').textContent = '';
+  document.getElementById('scan-btn').disabled = true;
+  document.getElementById('s1').style.display = 'block';
+  document.getElementById('s2').style.display = 'none';
+  setTabs(1);
+}
+
+function setTabs(n){
+  for(let i=1;i<=3;i++){
+    const t = document.getElementById('tab'+i);
+    t.className = 'step' + (i===n?' active': i<n?' done':'');
+  }
+}
+
+function addBlank(){
+  candidates.push({
+    _id:Date.now()+Math.random(), _status:'pending', _jobId:'', _err:'', _files:[],
+    first_name:'',last_name:'',email:'',phone:'',address:'',city:'',state:'',zip:'',
+    position_applied:'',availability:'',desired_start_date:'',employment_history:'',
+    education:'',cdl_class:'',equipment_operated:'',references:'',additional_notes:'',
+    confidence:'low'
+  });
+  showS2();
+}
+
+// ─── RENDER CARDS ────────────────────────────────────────────────────────
+function renderCards(){
+  const w = document.getElementById('cands');
+  const total = candidates.length;
+  const submitted = candidates.filter(c=>c._status==='submitted').length;
+  document.getElementById('ccount').textContent =
+    `${total} candidate${total!==1?'s':''}` + (submitted ? ` · ${submitted} submitted` : '');
+
+  if(!total){
+    w.innerHTML=`<div class="empty">
+      <div class="ei"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+      <div class="et">No candidates yet</div>
+      <div class="es">Scan an application above to get started</div>
+    </div>`;
+    return;
+  }
+  w.innerHTML = candidates.map((c,i) => buildCard(c,i)).join('');
+}
+
+function buildCard(c, i){
+  const init = ((c.first_name||'?')[0]+(c.last_name||'?')[0]).toUpperCase();
+  const name = [c.first_name,c.last_name].filter(Boolean).join(' ') || 'New Applicant';
+  const cf = c.confidence||'medium';
+  const cfc = cf==='high'?'ch':cf==='low'?'cl':'cm';
+  const dis = c._status==='submitted' ? 'disabled' : '';
+
+  // File badges
+  const files = c._files || [];
+  const fileBadges = files.length ? `
+    <div class="file-badges">
+      ${files.map((f,fi)=>`
+        <div class="file-badge">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          ${esc(f.name)} <span style="opacity:.5;font-weight:400">${fi===0?'(front)':'(back)'}</span>
+        </div>`).join('')}
+    </div>` : '';
+
+  // Job select options
+  const jobOpts = jobs.length
+    ? jobs.map(j=>`<option value="${esc(j.id)}" ${c._jobId===j.id?'selected':''}>${esc(j.title)}${j.city?' — '+esc(j.city):''}</option>`).join('')
+    : `<option value="">No jobs loaded — connect API key above</option>`;
+
+  // Status badge + actions
+  let sbadge='', actions='', submitSteps='';
+
+  if(c._status==='submitted'){
+    sbadge = `<span class="csbadge submitted">✓ In JazzHR</span>`;
+    submitSteps = buildSubmitSteps(c);
+    actions = `<div class="ok-msg"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Successfully added to JazzHR</div>`;
+  } else if(c._status==='failed'){
+    sbadge = `<span class="csbadge failed">✗ Failed</span>`;
+    actions = `
+      <div class="err-msg">⚠ ${esc(c._err||'Submission failed')}</div>
+      <button class="btn btn-primary" onclick="submitCandidate(${i})" style="margin-left:auto">Retry</button>
+      <button class="btn btn-ghost" onclick="delCard(${i})">Remove</button>`;
+  } else {
+    actions = `
+      <button class="btn btn-green" onclick="submitCandidate(${i})" id="sbtn${i}">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Confirm &amp; Add to JazzHR
+      </button>
+      <button class="btn btn-ghost" onclick="delCard(${i})">Remove</button>`;
+  }
+
+  return `<div class="ccard ${c._status}" id="cc${i}">
+  <div class="chd">
+    <div class="cavt">${init}</div>
+    <div>
+      <div class="cname">${esc(name)}</div>
+      <div class="cpos">${esc(c.position_applied)||'Position not specified'}</div>
+    </div>
+    <span class="cpill ${cfc}">${cf} confidence</span>
+    ${sbadge}
+  </div>
+  <div class="cbd">
+    ${fileBadges}
+
+    <div class="fg">
+      ${inp('First Name','first_name',c.first_name,i,dis)}
+      ${inp('Last Name','last_name',c.last_name,i,dis)}
+      ${inp('Email','email',c.email,i,dis,'email')}
+      ${inp('Phone','phone',c.phone,i,dis,'tel')}
+    </div>
+    <div class="fg">
+      ${inp('Address','address',c.address,i,dis)}
+      ${inp('City','city',c.city,i,dis)}
+      ${inp('State','state',c.state,i,dis)}
+      ${inp('ZIP','zip',c.zip,i,dis)}
+    </div>
+    <div class="fg">
+      ${inp('Position Applied For','position_applied',c.position_applied,i,dis)}
+      ${inp('Availability','availability',c.availability,i,dis)}
+      ${inp('Desired Start Date','desired_start_date',c.desired_start_date,i,dis)}
+      ${inp('CDL Class','cdl_class',c.cdl_class,i,dis)}
+    </div>
+    <div class="fg fg2">
+      ${ta('Equipment Operated','equipment_operated',c.equipment_operated,i,dis)}
+      ${ta('Employment History','employment_history',c.employment_history,i,dis)}
+    </div>
+    <div class="fg fg2">
+      ${ta('Education','education',c.education,i,dis)}
+      ${ta('References','references',c.references,i,dis)}
+    </div>
+    ${ta('Additional Notes','additional_notes',c.additional_notes,i,dis,'fg1')}
+
+    <div class="div"></div>
+
+    <div class="fl" style="margin-bottom:12px;">
+      <label class="flabel">Apply to JazzHR Job Opening</label>
+      <select class="fi jsel" id="jsel${i}" onchange="setJob(${i},this.value)" ${dis}>
+        <option value="">— Select a job requisition —</option>
+        ${jobOpts}
+      </select>
+    </div>
+    ${!jobs.length&&!dis?`<div class="warn-box">Connect your JazzHR API key above to load open jobs. You can submit without selecting a job — the candidate will land in your general applicant pool.</div>`:''}
+
+    ${submitSteps}
+    <div class="cactions">${actions}</div>
+  </div>
+</div>`;
+}
+
+function buildSubmitSteps(c){
+  const steps = c._submitSteps || [];
+  if(!steps.length) return '';
+  return `<div class="submit-steps">`
+    + steps.map(s=>`<div class="sstep ${s.status}"><span class="sstep-dot"></span>${esc(s.label)}</div>`).join('')
+    + `</div>`;
+}
+
+function inp(label,key,val,i,dis,type='text'){
+  return `<div class="fl">
+    <label class="flabel">${label}</label>
+    <input type="${type}" class="fi" value="${esc(val||'')}" onchange="upd(${i},'${key}',this.value)" ${dis}/>
+  </div>`;
+}
+function ta(label,key,val,i,dis,cls=''){
+  return `<div class="fl ${cls}">
+    <label class="flabel">${label}</label>
+    <textarea class="fi" rows="2" onchange="upd(${i},'${key}',this.value)" ${dis}>${esc(val||'')}</textarea>
+  </div>`;
+}
+
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function enc(s){ return encodeURIComponent(s); }
+function upd(i,k,v){ candidates[i][k]=v; }
+function setJob(i,v){ candidates[i]._jobId=v; }
+function delCard(i){ candidates.splice(i,1); renderCards(); }
+function fillJobSel(sel){
+  const cur=sel.value;
+  sel.innerHTML=`<option value="">— Select a job requisition —</option>`
+    +jobs.map(j=>`<option value="${esc(j.id)}">${esc(j.title)}${j.city?' — '+esc(j.city):''}</option>`).join('');
+  if(cur) sel.value=cur;
+}
+
+// ─── SUBMIT ──────────────────────────────────────────────────────────────
+async function submitCandidate(i){
+  const c = candidates[i];
+
+  const btn = document.getElementById('sbtn'+i);
+  if(btn){ btn.disabled=true; btn.innerHTML=`<span class="spin"></span> Submitting…`; }
+
+  // Set up progress steps
+  candidates[i]._submitSteps = [
+    {label:'Creating applicant record…', status:'active'},
+    {label:'Attaching application files…', status:''},
+    {label:'Linking to job requisition…', status:''},
+  ];
+  renderCards();
+
+  try{
+    // ── STEP 1: Create applicant ────────────────────────────
+    const body = {
+      first_name: c.first_name || 'Unknown',
+      last_name:  c.last_name  || 'Applicant',
+      email:      c.email      || '',
+      phone:      c.phone      || '',
+      address:    c.address    || '',
+      location:   [c.city, c.state, c.zip].filter(Boolean).join(', '),
+      notes:      buildNotes(c),
+    };
+    const ar = await fetch('/.netlify/functions/jazz', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint: 'applicants', method: 'POST', params: body })
+    });
+    const ad = await ar.json();
+    if(!ar.ok || ad.error || !ad.id) throw new Error(ad.error||ad.message||'Applicant creation failed (HTTP '+ar.status+')');
+
+    const applicantId = ad.id;
+    setStep(i, 0, 'done');
+    setStep(i, 1, 'active');
+    renderCards();
+
+    // ── STEP 2: Attach files as resume/documents ────────────
+    const files = c._files || [];
+    let fileOk = true;
+    for(const file of files){
+      try{
+        await attachFile(applicantId, file);
+      } catch(fe){
+        console.warn('File attach warning:', fe.message);
+        fileOk = false;
+        // Non-fatal — applicant already created
+      }
+    }
+    setStep(i, 1, fileOk ? 'done' : 'err');
+    setStep(i, 2, 'active');
+    renderCards();
+
+    // ── STEP 3: Link to job ─────────────────────────────────
+    if(c._jobId){
+      try{
+        await fetch('/.netlify/functions/jazz', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint: 'applicants2jobs', method: 'POST', params: { applicant_id: applicantId, job_id: c._jobId } })
+        });
+      } catch(je){
+        console.warn('Job link warning:', je.message);
+      }
+    }
+    setStep(i, 2, 'done');
+
+    candidates[i]._status = 'submitted';
+    setTabs(3);
+    renderCards();
+    toast([c.first_name,c.last_name].filter(Boolean).join(' ')||'Applicant' + ' added to JazzHR!','ok');
+
+  } catch(e){
+    candidates[i]._status = 'failed';
+    candidates[i]._err = e.message;
+    // Mark any pending steps as failed
+    (candidates[i]._submitSteps||[]).forEach(s=>{ if(s.status==='active') s.status='err'; });
+    renderCards();
+    toast('Submission failed: ' + e.message, 'err');
+  }
+}
+
+function setStep(i, stepIdx, status){
+  if(candidates[i]._submitSteps && candidates[i]._submitSteps[stepIdx]){
+    candidates[i]._submitSteps[stepIdx].status = status;
+    // Activate next step
+    if(status==='done' && candidates[i]._submitSteps[stepIdx+1]){
+      candidates[i]._submitSteps[stepIdx+1].status = 'active';
+      // Update label to past tense
+      const labels = ['Applicant record created','Files attached','Linked to job'];
+      candidates[i]._submitSteps[stepIdx].label = labels[stepIdx]||candidates[i]._submitSteps[stepIdx].label;
+    }
+  }
+}
+
+async function attachFile(applicantId, file){
+  const b64 = await toB64(file);
+  const r = await fetch('/.netlify/functions/jazz', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      endpoint: 'applicants/' + enc(applicantId) + '/files',
+      method: 'FILE',
+      fileData: { name: file.name, type: file.type || 'application/pdf', base64: b64 }
+    })
+  });
+  if(!r.ok) throw new Error('File attach HTTP ' + r.status);
+}
+
+function buildNotes(c){
+  const p=[];
+  if(c.position_applied)   p.push('Position applied: '+c.position_applied);
+  if(c.availability)       p.push('Availability: '+c.availability);
+  if(c.desired_start_date) p.push('Start date: '+c.desired_start_date);
+  if(c.cdl_class)          p.push('CDL: '+c.cdl_class);
+  if(c.equipment_operated) p.push('Equipment: '+c.equipment_operated);
+  if(c.employment_history) p.push('Work history: '+c.employment_history);
+  if(c.education)          p.push('Education: '+c.education);
+  if(c.references)         p.push('References: '+c.references);
+  if(c.additional_notes)   p.push('Notes: '+c.additional_notes);
+  p.push('Source: Handwritten application — scanned via KE&G Application Scanner');
+  return p.join('\n');
+}
+
+// ─── TOAST ───────────────────────────────────────────────────────────────
+function toast(msg, type=''){
+  clearTimeout(toastT);
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (type==='ok'?'ok':type==='err'?'err':'');
+  toastT = setTimeout(()=>t.className='toast', 4500);
+}
+</script>
+</body>
+</html>
