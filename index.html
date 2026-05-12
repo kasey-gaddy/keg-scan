@@ -683,7 +683,7 @@ async function submitCandidate(i){
   // Set up progress steps
   candidates[i]._submitSteps = [
     {label:'Creating applicant record…', status:'active'},
-    {label:'Attaching application files…', status:''},
+    {label:'Posting application notes…', status:''},
     {label:'Linking to job requisition…', status:''},
   ];
   renderCards();
@@ -701,7 +701,8 @@ async function submitCandidate(i){
       state:      c.state      || '',
       zip:        c.zip        || '',
       notes:      buildNotes(c),
-      job_id:     c._jobId    || '',
+      job_id:          c._jobId    || '',
+      referral_info:   'Paper Application',
     };
     const ar = await fetch('/.netlify/functions/jazz', {
       method: 'POST',
@@ -729,15 +730,8 @@ async function submitCandidate(i){
     setStep(i, 1, 'active');
     renderCards();
 
-    // ── STEP 2: Generate & attach PDF resume ────────────────
-    let fileOk = true;
-    try{
-      await attachFile(applicantId, c);
-    } catch(fe){
-      console.warn('File attach warning:', fe.message);
-      fileOk = false;
-    }
-    setStep(i, 1, fileOk ? 'done' : 'err');
+    // ── STEP 2: Skip file attach (JazzHR REST API does not support it) ──
+    setStep(i, 1, 'done');
     setStep(i, 2, 'active');
     renderCards();
 
