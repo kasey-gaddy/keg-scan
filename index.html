@@ -266,7 +266,9 @@ async function loadJobs(){
       body: JSON.stringify({ endpoint: 'jobs', method: 'GET' })
     });
     const data = await r.json();
-    jobs = Array.isArray(data) ? data : [];
+    jobs = (Array.isArray(data) ? data : [])
+      .filter(j => j.status === 'Open')
+      .sort((a,b) => (a.title||'').localeCompare(b.title||''));
     document.querySelectorAll('.jsel').forEach(fillJobSel);
   } catch(e){
     console.warn('Could not load jobs:', e.message);

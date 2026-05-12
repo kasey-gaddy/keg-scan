@@ -63,6 +63,7 @@ exports.handler = async (event) => {
     }
 
     // POST — send as JSON body with apikey in query string
+    console.log('POST endpoint:', endpoint);
     console.log('POST to:', `${BASE}/${endpoint}`);
     console.log('POST params:', JSON.stringify(params).substring(0, 200));
     const res = await fetch(`${BASE}/${endpoint}?apikey=${encodeURIComponent(key)}`, {
