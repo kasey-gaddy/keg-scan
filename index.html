@@ -730,8 +730,15 @@ async function submitCandidate(i){
     setStep(i, 1, 'active');
     renderCards();
 
-    // ── STEP 2: Skip file attach (JazzHR REST API does not support it) ──
-    setStep(i, 1, 'done');
+    // ── STEP 2: Attach generated text resume via /files ─────
+    let fileOk = true;
+    try{
+      await attachFile(applicantId, c);
+    } catch(fe){
+      console.warn('File attach warning:', fe.message);
+      fileOk = false;
+    }
+    setStep(i, 1, fileOk ? 'done' : 'err');
     setStep(i, 2, 'active');
     renderCards();
 
